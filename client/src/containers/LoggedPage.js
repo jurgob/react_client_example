@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 import CSClient from '../utils/csClient'
 import FormCreateConversation from '../components/FormCreateConversation'
+import FormJoinConversation from '../components/FormJoinConversation'
 import FormEnableAudioInConversations from '../components/FormEnableAudioInConversations'
 import Audio from '../components/Audio'
 import createRtcAudioConnection from '../utils/createRtcAudioConnection'
@@ -34,6 +35,8 @@ function LoggedPage(props) {
 
     const lastCSClientEvent = useCSClientEvents(csClient)
     const [eventsHistory, setEvents] = useState([])
+    const [myConversationsState, setMyConversationsState] = useState([])
+    const [conversationsEvents, setConversationsEvents] = useState({})
 
     // useCSClientEvents
     const [audioState, setAudioState] = useState({
@@ -94,28 +97,29 @@ function LoggedPage(props) {
             })
         }
 
-        const onEvent = async (evt) => {
+        csClient.onEvent(async (evt) => {
             if (evt.type === 'rtc:answer') {
                 const sdp = evt.body.answer
                 const remoteDescription = new RTCSessionDescription({
                     type: 'answer',
                     sdp,
                 })
-
-                console.log(`rtc:answer audioState `, audioState)
-
                 if (audioState.peerConnection) {
-
                     audioState.peerConnection.ontrack = onTrack
-
                     audioState.peerConnection.setRemoteDescription(remoteDescription)
                 }
+            }
+        })
 
+        csClient.onRequestEnd(async (event) => {
+            const url = event.request.url
+            if (url.includes("/users/") && url.includes("/conversations") ) {
+                const conversations = event.response.data._embedded.conversations
+                setMyConversationsState(conversations)
             }
 
-        }
-
-        csClient.onEvent(onEvent)
+            
+        })
 
     }, [audioState])
 
@@ -182,6 +186,25 @@ function LoggedPage(props) {
 
     }
 
+    const onJoinConversationSubmit = async (data) => {
+        console.log('onJoinConversationSubmit ', data)
+        const { conversation_join_id} = data
+        await csClient.request({
+            url: `/v0.3/conversations/${conversation_join_id}/members`,
+            method: "post",
+            data: {
+                "state": "joined",
+                "user": {
+                    name: csClient.getSessionData().user_name,
+                },
+                "channel": {
+                    "type": "app"
+                }
+            }
+        })
+
+    }
+
     const getMyConversations = async () => {
         await csClient.request({
             url: `/v0.3/users/${csClient.getSessionData().user_id}/conversations`,
@@ -189,18 +212,36 @@ function LoggedPage(props) {
         })
     }
 
-
+    
     return (
         <div className="App">
             <h1>Conversations Client Playground</h1>
             <div>
                 <h2>Create Conversation and Join</h2>
                 <FormCreateConversation onSubmit={onCreateConversationSubmit} />
+                <h2>Join Conversation</h2>
+                <FormJoinConversation onSubmit={onJoinConversationSubmit} />
                 <h2>Get My Conversations</h2>
                 <button onClick={getMyConversations} >Get My Conversations</button>
                 <h2>Enable Audio In Conversations</h2>
                 <FormEnableAudioInConversations onSubmit={onEnableAudioInConversationSubmit} />
                 <Audio srcObject={audioState.audioSrcObject} />
+                <div>
+                    Conversations ({myConversationsState.length})
+                    {myConversationsState.length && <div>
+                        {myConversationsState.map(({ name, id, _embedded}) => {
+                            const { member } = _embedded
+                            return (<div key={id}>
+                                <b>{name}: </b>{id} - {member.state} - {member.id}
+                            </div>)
+                        })}
+                        
+
+                    </div>
+
+                    }
+                </div>
+
                 <EventsHistory
                     eventsHistory={eventsHistory}
                     onCleanHistoryClick={() => setEvents(() => [])}

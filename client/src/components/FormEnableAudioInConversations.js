@@ -15,14 +15,14 @@ function FormEnableAudioInConversations({ onSubmit }) {
                 name="audio_conversation_id"
                 aria-invalid={errors.name ? "true" : "false"}
                 defaultValue="CON-71ed48a1-4983-4557-a911-561fcb380d2f"
-                ref={register({ required: true, maxLength: 50, })}
+                ref={register({ required: true, maxLength: 40, })}
             />
 
             {/* use role="alert" to announce the error message */}
-            {errors.name && errors.name.type === "required" && (
+            {errors.audio_conversation_id && errors.audio_conversation_id.type === "required" && (
                 <span role="alert">This is required</span>
             )}
-            {errors.name && errors.name.type === "maxLength" && (
+            {errors.audio_conversation_id && errors.audio_conversation_id.type === "maxLength" && (
                 <span role="alert">Max length exceeded</span>
             )}
 
