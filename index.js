@@ -42,6 +42,12 @@ const rtcEvent = async (event, { logger, csClient }) => {
   }
 };
 
+const messageEvent = async (event, { logger, csClient }) => {
+  try {
+  } catch (err) {
+    logger.error({ err }, "Error on messageEvent function");
+  }
+};
 /**
  *
  * @param {object} app - this is an express app
@@ -123,5 +129,6 @@ const route = (app, express) => {
 
 module.exports = {
   rtcEvent,
+  messageEvent,
   route,
 };
