@@ -1,0 +1,22 @@
+@api_url="http://localhost:5001/api"
+@username="jurgo"
+
+###  get user info
+GET {{api_url}}/users/{{username}}
+
+###  get user info
+GET http://localhost:5001/api/users/jurgo
+content-type: application/json
+
+###  get user info
+
+POST http://localhost:5001/api/login
+content-type: application/json
+
+{
+    "username": "jurgo"
+}
+### invite user
+
+POST http://localhost:5001/api/invite/myconv3/jurgo
+content-type: application/json

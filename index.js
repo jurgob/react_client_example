@@ -115,16 +115,75 @@ const route = (app, express) => {
     const { username } = req.params;
     let user;
     user = await storageClient.get(`user:${username}`);
+    if(user){
+      console.log(`user `, user)
+      user = JSON.parse(user)
+    }
     if (!user) {
       const userResponse = await csClient({
         url: `${CS_URL}/v0.3/users?name=${username}`,
         method: "get",
       });
       user = userResponse.data._embedded.users[0];
-      await storageClient.set(`user:${username}`, user);
+      await storageClient.set(`user:${username}`, JSON.stringify(user));
     }
     res.json({ user });
   });
+
+  app.post("/api/invite/:conversation_name/:username", async (req, res) => {
+    const { logger, csClient, storageClient } = req.nexmo;
+
+    const { username ,conversation_name} = req.params;
+
+    try{
+      let user;
+      user = await storageClient.get(`user:${username}`);
+      if(user){
+        console.log(`user `, user)
+        user = JSON.parse(user)
+      }
+      if (!user) {
+        const userResponse = await csClient({
+          url: `${CS_URL}/v0.3/users?name=${username}`,
+          method: "get",
+        });
+        user = userResponse.data._embedded.users[0];
+        await storageClient.set(`user:${username}`, JSON.stringify(user));
+      }
+
+      let conversation;
+      const conversationResponse = await csClient({
+        url: `${CS_URL}/v0.3/conversations`,
+        method: "post",
+        data:{
+          name: conversation_name
+        }
+      });
+      conversation = conversationResponse.data;
+
+      let member;
+      const memberResponse = await csClient({
+        url: `${CS_URL}/v0.3/conversations/${conversation.id}/members`,
+        method: "post",
+        data:{
+          "state": "invited",
+          "user": {
+            "name": username
+          },
+          "channel": {
+            "type": "app"
+          }
+        }
+      });
+      conversation = conversationResponse.data;
+
+
+      res.json({ user, conversation,member });
+    }catch(e){
+      res.status(500).json({ error: e });
+    }
+  });
+
 };
 
 module.exports = {
